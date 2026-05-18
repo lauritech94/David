@@ -1,0 +1,108 @@
+# RBAC Permission Matrix - Deny by Default
+# Sistema de permisos basado en roles con herencia de scopes
+
+scopes:
+  - WORKSPACE    # Nivel organizacional más alto
+  - ARTIST       # Nivel de artista específico  
+  - PROJECT      # Nivel de proyecto específico
+
+roles:
+  WORKSPACE:
+    OWNER:
+      description: "Propietario del workspace con acceso completo"
+      allow: [MANAGE_BILLING, INVITE_USERS, CREATE_ARTIST, SEE_ALL]
+      
+    TEAM_MANAGER:
+      description: "Gestor de equipo con permisos administrativos limitados"
+      allow: [INVITE_USERS, CREATE_ARTIST, SEE_ALL]
+
+  ARTIST:
+    ARTIST_MANAGER:
+      description: "Manager del artista con control total sobre sus proyectos"
+      allow: [SEE_ALL, CREATE_PROJECT, ASSIGN_PROJECT_ROLES, VIEW_SALES, VIEW_CALENDAR]
+      
+    ARTIST_OBSERVER:
+      description: "Observador del artista con acceso de solo lectura"
+      allow: [VIEW_DASHBOARD, VIEW_SALES, VIEW_CALENDAR]
+
+  PROJECT:
+    EDITOR:
+      description: "Editor con permisos completos de gestión del proyecto"
+      allow: [VIEW_PROJECT, EDIT_PROJECT, CREATE_WORK_ITEM, EDIT_WORK_ITEM, SEND_BUDGET, CHANGE_STATUS, UPLOAD_FILES]
+      
+    COMMENTER:
+      description: "Colaborador con permisos de comentario y aprobación"
+      allow: [VIEW_PROJECT, COMMENT, APPROVE_IF_ASSIGNED]
+      
+    VIEWER:
+      description: "Visualizador con acceso de solo lectura al proyecto"
+      allow: [VIEW_PROJECT]
+
+# Catálogo completo de acciones del sistema
+acciones_clave:
+  # Workspace level
+  - MANAGE_BILLING          # Gestionar facturación y suscripciones
+  - INVITE_USERS            # Invitar nuevos usuarios al workspace
+  - CREATE_ARTIST           # Crear nuevos perfiles de artista
+  - SEE_ALL                 # Ver todos los recursos del workspace
+  
+  # Artist level  
+  - CREATE_PROJECT          # Crear nuevos proyectos para el artista
+  - ASSIGN_PROJECT_ROLES    # Asignar roles en proyectos del artista
+  - VIEW_SALES              # Ver datos de ventas del artista
+  - VIEW_CALENDAR           # Ver calendario del artista
+  - VIEW_DASHBOARD          # Ver dashboard del artista
+  
+  # Project level
+  - VIEW_PROJECT            # Ver detalles del proyecto
+  - EDIT_PROJECT            # Editar configuración del proyecto
+  - CREATE_WORK_ITEM        # Crear tareas, solicitudes, etc.
+  - EDIT_WORK_ITEM          # Editar elementos de trabajo
+  - SEND_BUDGET             # Enviar presupuestos
+  - CHANGE_STATUS           # Cambiar estados de elementos
+  - UPLOAD_FILES            # Subir archivos al proyecto
+  - COMMENT                 # Comentar en elementos del proyecto
+  - APPROVE_IF_ASSIGNED     # Aprobar si está asignado como revisor
+
+# Reglas de herencia de permisos
+herencia:
+  description: |
+    El sistema implementa herencia descendente de permisos:
+    
+    1. WORKSPACE -> ARTIST -> PROJECT
+       - Un rol de WORKSPACE otorga acceso a todos los ARTIST del workspace
+       - Un rol de ARTIST otorga acceso a todos los PROJECT del artista
+       
+    2. Deny-by-default
+       - Cualquier acción no explícitamente permitida está denegada
+       - Los usuarios sin roles no tienen acceso a ningún recurso
+       
+    3. Combinación de roles
+       - Un usuario puede tener múltiples roles en diferentes scopes
+       - Los permisos se suman (union), nunca se restan
+       
+    4. Ejemplos de herencia:
+       - WORKSPACE.OWNER: Acceso total a todo el workspace
+       - ARTIST.ARTIST_MANAGER: Ve/gestiona todos los proyectos de ese artista
+       - PROJECT.EDITOR: Solo puede editar ese proyecto específico
+
+# Casos de uso comunes
+ejemplos_uso:
+  workspace_owner:
+    roles: ["WORKSPACE.OWNER"]
+    puede: "Gestionar facturación, invitar usuarios, crear artistas, ver todo"
+    
+  artist_manager:
+    roles: ["ARTIST.ARTIST_MANAGER"]  
+    puede: "Crear proyectos, asignar roles en proyectos, ver ventas/calendario del artista"
+    hereda: "Acceso automático a TODOS los proyectos del artista"
+    
+  project_collaborator:
+    roles: ["PROJECT.EDITOR", "PROJECT.COMMENTER"]
+    puede: "Editar proyectos específicos y comentar en otros"
+    limitado: "Solo acceso a proyectos donde tiene rol explícito"
+    
+  mixed_permissions:
+    roles: ["ARTIST.ARTIST_OBSERVER", "PROJECT.EDITOR"] 
+    puede: "Ver dashboard del artista + editar proyectos específicos"
+    nota: "Combinación de permisos de diferentes scopes"
